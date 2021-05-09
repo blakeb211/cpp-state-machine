@@ -3,36 +3,46 @@
 
 #include "fsm.h"
 
-void action1() { std::cout << "perform custom action 1\n"; }
-void action2() { std::cout << "perform custom action 2\n"; }
-enum class States { Initial, A, Final };
-enum class Triggers { A, B };
-using F = FSM::Fsm<States, States::Initial, Triggers>;
+namespace fruit {
+
+enum class States { Spinning, Eaten };
+enum class Triggers { EatTrigger };
+using F = FSM::Fsm<States, States::Spinning, Triggers>;
 
 void dbg_fsm(States from_state, States to_state, Triggers trigger) {
   std::cout << "state has changed from " << (int)from_state;
   std::cout << " to " << (int)to_state << std::endl;
 }
 
-int main() {
-  std::vector<F::Trans> transitions = {
-      // from state     , to state      , trigger, guard           , action
-      {States::Initial, States::A, Triggers::A, nullptr, action1},
-      {States::A, States::Final, Triggers::B, [] { return true; }, action2},
-  };
+void eaten_fruit_action() {
+  std::cout << "perform fruit eaten action, like send signal to draw "
+               "animation, play sound\n";
+}
 
+// from_state      to_state        trigger       guard     action
+std::vector<F::Trans> fruit_transitions = {{States::Spinning, States::Eaten,
+                                            Triggers::EatTrigger, nullptr,
+                                            eaten_fruit_action}};
+
+struct Fruit {
   F fsm;
-  // Enable debug
-  fsm.add_debug_fn(dbg_fsm);
+  Fruit() {
+    fsm.add_transitions(fruit_transitions);
+    fsm.add_debug_fn(dbg_fsm);
+  }
+};
 
-  fsm.add_transitions(transitions);
-  assert(fsm.is_initial());
-  fsm.execute(Triggers::B);
-  fsm.execute(Triggers::A);
-  assert(States::A == fsm.state());
-  fsm.execute(Triggers::B);
-  assert(States::Final == fsm.state());
-  fsm.reset();
-  assert(fsm.is_initial());
+};  // namespace fruit
+
+int main() {
+  // make a fruit
+  // assert its state
+  // execute a trigger
+  // assert its state
+  fruit::Fruit f0{};
+  assert(f0.fsm.is_initial());
+  f0.fsm.execute(fruit::Triggers::EatTrigger);
+  assert(f0.fsm.state() == fruit::States::Eaten);
+  f0.fsm.execute(fruit::Triggers::EatTrigger);
   return 0;
 }
